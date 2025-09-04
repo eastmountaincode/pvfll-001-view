@@ -2,8 +2,8 @@
 # -*- coding:utf-8 -*-
 import sys
 import os
-picdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'pic')
-libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'lib')
+picdir = "/home/virtual/pvfll/e-Paper/RaspberryPi_JetsonNano/python/pic" 
+libdir = "/home/virtual/pvfll/e-Paper/RaspberryPi_JetsonNano/python/lib"
 if os.path.exists(libdir):
     sys.path.append(libdir)
 
@@ -23,9 +23,10 @@ try:
     epd.init()
     epd.Clear()
 
-    font24 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 24)
-    font18 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 18)
-    font35 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 35)
+    FONT_TTC = "/home/virtual/pvfll/e-Paper/RaspberryPi_JetsonNano/python/pic/Font.ttc"
+    font18 = ImageFont.truetype(FONT_TTC, 18)
+    font24 = ImageFont.truetype(FONT_TTC, 24)
+    font35 = ImageFont.truetype(FONT_TTC, 35)
 
     logging.info("read bmp file")
     Himage = Image.open(os.path.join(picdir, '7in5_V2.bmp'))
