@@ -31,36 +31,39 @@ full_refresh_counter = 0
 FULL_REFRESH_INTERVAL = 10  # Do full refresh every 10 updates
 
 def load_file_icon():
-    """Create file icon directly with PIL (no SVG dependencies)"""
+    """Load the SVG file icon using cairosvg"""
     global file_icon
     try:
-        # Create a 24x24 1-bit image
-        size = 24
-        icon = Image.new('1', (size, size), 255)  # White background
-        draw = ImageDraw.Draw(icon)
+        import cairosvg
+        from io import BytesIO
         
-        # Draw a simple file icon based on FontAwesome file icon
-        # Scale the coordinates to fit 24x24
-        scale = size / 640  # Original SVG is 640x640
+        # Convert SVG to PNG in memory with transparent background
+        png_data = cairosvg.svg2png(
+            url="icons/file-regular-full.svg", 
+            output_width=24, 
+            output_height=24,
+            background_color="white"
+        )
+        icon = Image.open(BytesIO(png_data))
         
-        # Main file body (simplified from the SVG path)
-        # Rectangle for main file
-        x1, y1 = int(176 * scale), int(128 * scale)
-        x2, y2 = int(464 * scale), int(512 * scale)
-        draw.rectangle([x1, y1, x2, y2], outline=0, width=1)
+        # Convert to RGBA first to handle transparency properly
+        if icon.mode != 'RGBA':
+            icon = icon.convert('RGBA')
         
-        # Folded corner
-        corner_x = int(376 * scale)
-        corner_y = int(224 * scale)
-        draw.line([corner_x, y1, corner_x, corner_y], fill=0, width=1)
-        draw.line([corner_x, corner_y, x2, corner_y], fill=0, width=1)
+        # Create a white background and paste the icon
+        white_bg = Image.new('RGBA', (24, 24), (255, 255, 255, 255))
+        white_bg.paste(icon, (0, 0), icon)
         
-        file_icon = icon
-        print("File icon created with PIL")
+        # Convert to 1-bit for e-ink (white=255, black=0)
+        file_icon = white_bg.convert('1')
+        print("File icon loaded from SVG")
         return True
         
+    except ImportError:
+        print("cairosvg not available - install with: pip install cairosvg")
+        return False
     except Exception as e:
-        print(f"Error creating file icon: {e}")
+        print(f"Error loading SVG icon: {e}")
         return False
 
 def init_display():
