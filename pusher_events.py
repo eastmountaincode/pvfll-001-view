@@ -8,8 +8,19 @@ import os
 import json
 import threading
 import time
-from pusher_client import Pusher
 from dotenv import load_dotenv
+
+# Try different pusher client packages
+try:
+    from pusherclient import Pusher
+    print("Using pusherclient package")
+except ImportError:
+    try:
+        from pusher_client_python import Pusher
+        print("Using pusher_client_python package")
+    except ImportError:
+        print("Error: No Pusher client package found. Install with: pip3 install pusherclient")
+        Pusher = None
 
 # Load environment variables
 load_dotenv('.env.local')
@@ -32,6 +43,10 @@ class PusherListener:
         
     def connect(self):
         """Connect to Pusher and subscribe to the garden channel"""
+        if Pusher is None:
+            print("Warning: Pusher client not available. Real-time updates disabled.")
+            return False
+            
         if not PUSHER_APP_KEY:
             print("Warning: PUSHER_APP_KEY not set. Real-time updates disabled.")
             return False
@@ -39,7 +54,7 @@ class PusherListener:
         try:
             # Create Pusher client
             self.pusher = Pusher(
-                app_key=PUSHER_APP_KEY,
+                key=PUSHER_APP_KEY,  # Note: some packages use 'key' instead of 'app_key'
                 cluster=PUSHER_CLUSTER,
                 secure=True
             )

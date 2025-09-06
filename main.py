@@ -10,7 +10,7 @@ import sys
 import threading
 from api import fetch_all_boxes, fetch_box_status
 from display import init_display, display_boxes, clear_display, sleep_display
-from pusher_client import PusherListener
+from pusher_events import PusherListener
 
 # Global state
 running = True
