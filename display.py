@@ -59,7 +59,13 @@ def load_file_icon():
             white_bg.paste(icon, (0, 0))
         
         # Convert to 1-bit for e-ink
-        file_icon = white_bg.convert('1')
+        # For draw.bitmap(), we need 0=draw, 255=transparent
+        # So we need to invert: black icon parts should be 0, white background should be 255
+        bw_icon = white_bg.convert('1')
+        
+        # Create inverted version for bitmap drawing
+        from PIL import ImageOps
+        file_icon = ImageOps.invert(bw_icon)
         print(f"File icon loaded: {file_icon.mode}, size: {file_icon.size}")
         print("File icon loaded from SVG")
         return True
@@ -184,10 +190,8 @@ def draw_box(draw, x, y, width, height, box_num, box_data):
     if not box_data.get("empty", True) and file_icon:
         icon_x = x + width - file_icon.width - padding
         icon_y = y + padding
-        # Paste the icon directly onto the main image
-        # For 1-bit images, white pixels (255) are transparent, black pixels (0) are drawn
-        main_image = draw._image
-        main_image.paste(file_icon, (icon_x, icon_y), file_icon)
+        # Draw the file icon using bitmap (simpler approach)
+        draw.bitmap((icon_x, icon_y), file_icon, fill=0)
     
     # Status - adjust position for larger box number
     text_y = y + padding + 60
