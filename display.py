@@ -136,21 +136,45 @@ def draw_box(draw, x, y, width, height, box_num, box_data):
     padding = 10
     draw.text((x + padding, y + padding), str(box_num), font=font_box_number, fill=0)
     
-    # Status - adjust position for larger box number
-    text_y = y + padding + 60
+    # Define the content area below the box number
+    content_top = y + padding + 60
+    content_height = height - (padding + 60 + padding)  # Available height for content
+    content_width = width - (2 * padding)  # Available width for content
+    content_center_x = x + width // 2  # Horizontal center of the box
     
     if box_data.get("error"):
-        draw.text((x + padding, text_y), "ERROR", font=font_text, fill=0)
-        text_y += 25
-        # Truncate long error messages
+        # Center error message
+        error_text = "ERROR"
         error_msg = str(box_data["error"])[:30] + "..." if len(str(box_data["error"])) > 30 else str(box_data["error"])
-        draw.text((x + padding, text_y), error_msg, font=font_text, fill=0)
+        
+        # Calculate vertical center for 2 lines
+        line_height = 25
+        total_text_height = line_height * 2
+        start_y = content_top + (content_height - total_text_height) // 2
+        
+        # Center horizontally
+        error_bbox = draw.textbbox((0, 0), error_text, font=font_text)
+        error_width = error_bbox[2] - error_bbox[0]
+        draw.text((content_center_x - error_width // 2, start_y), error_text, font=font_text, fill=0)
+        
+        msg_bbox = draw.textbbox((0, 0), error_msg, font=font_text)
+        msg_width = msg_bbox[2] - msg_bbox[0]
+        draw.text((content_center_x - msg_width // 2, start_y + line_height), error_msg, font=font_text, fill=0)
         
     elif box_data.get("empty", True):
-        draw.text((x + padding, text_y), "Empty", font=font_text, fill=0)
+        # Center "Empty" text
+        empty_text = "Empty"
+        empty_bbox = draw.textbbox((0, 0), empty_text, font=font_text)
+        empty_width = empty_bbox[2] - empty_bbox[0]
+        empty_height = empty_bbox[3] - empty_bbox[1]
+        
+        # Center both horizontally and vertically
+        text_x = content_center_x - empty_width // 2
+        text_y = content_top + (content_height - empty_height) // 2
+        draw.text((text_x, text_y), empty_text, font=font_text, fill=0)
         
     else:
-        # File info
+        # File info - center the block of text
         name = box_data.get("name", "Unknown")
         file_type = box_data.get("type", "Unknown")
         size = format_size(box_data.get("size", 0))
@@ -159,11 +183,25 @@ def draw_box(draw, x, y, width, height, box_num, box_data):
         if len(name) > 20:
             name = name[:17] + "..."
         
-        draw.text((x + padding, text_y), f"File: {name}", font=font_text, fill=0)
-        text_y += 22
-        draw.text((x + padding, text_y), f"Type: {file_type}", font=font_text, fill=0)
-        text_y += 22
-        draw.text((x + padding, text_y), f"Size: {size}", font=font_text, fill=0)
+        # Prepare the lines
+        lines = [
+            f"File: {name}",
+            f"Type: {file_type}",
+            f"Size: {size}"
+        ]
+        
+        # Calculate total height of text block
+        line_height = 22
+        total_text_height = line_height * len(lines)
+        start_y = content_top + (content_height - total_text_height) // 2
+        
+        # Draw each line centered
+        for i, line in enumerate(lines):
+            line_bbox = draw.textbbox((0, 0), line, font=font_text)
+            line_width = line_bbox[2] - line_bbox[0]
+            text_x = content_center_x - line_width // 2
+            text_y = start_y + (i * line_height)
+            draw.text((text_x, text_y), line, font=font_text, fill=0)
 
 def format_size(bytes_value):
     """Format file size - copied from api.py for consistency"""
