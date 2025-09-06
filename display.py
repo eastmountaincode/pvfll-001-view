@@ -40,8 +40,8 @@ def load_file_icon():
         # Convert SVG to PNG with completely transparent background
         png_data = cairosvg.svg2png(
             url="icons/file-regular-full.svg", 
-            output_width=64, 
-            output_height=64,
+            output_width=48, 
+            output_height=48,
             background_color="rgba(0,0,0,0)"  # Fully transparent background
         )
         icon = Image.open(BytesIO(png_data))
@@ -184,8 +184,10 @@ def draw_box(draw, x, y, width, height, box_num, box_data):
     if not box_data.get("empty", True) and file_icon:
         icon_x = x + width - file_icon.width - padding
         icon_y = y + padding
-        # Draw the file icon
-        draw.bitmap((icon_x, icon_y), file_icon, fill=0)
+        # Paste the icon directly onto the main image
+        # For 1-bit images, white pixels (255) are transparent, black pixels (0) are drawn
+        main_image = draw._image
+        main_image.paste(file_icon, (icon_x, icon_y), file_icon)
     
     # Status - adjust position for larger box number
     text_y = y + padding + 60
