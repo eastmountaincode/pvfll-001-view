@@ -27,6 +27,8 @@ fonts_loaded = False
 font_title = None
 font_box_title = None
 font_text = None
+full_refresh_counter = 0
+FULL_REFRESH_INTERVAL = 10  # Do full refresh every 10 updates
 
 def init_display():
     """Initialize the e-ink display"""
@@ -81,6 +83,11 @@ def sleep_display():
             print(f"Error putting display to sleep: {e}")
     else:
         print("[MOCK] Display sleeping")
+
+def force_full_refresh():
+    """Force the next display update to use full refresh"""
+    global full_refresh_counter
+    full_refresh_counter = FULL_REFRESH_INTERVAL
 
 def create_layout_image(box_data: Dict[int, Dict[str, Any]]) -> Image.Image:
     """Create the layout image showing all box statuses"""
@@ -175,8 +182,9 @@ def format_size(bytes_value):
     else:
         return f"{size:.1f} {units[unit_index]}"
 
-def display_boxes(box_data: Dict[int, Dict[str, Any]]):
+def display_boxes(box_data: Dict[int, Dict[str, Any]], force_full_refresh=False):
     """Main function to display box data on e-ink screen"""
+    global full_refresh_counter
     
     print("Rendering display...")
     
@@ -186,7 +194,29 @@ def display_boxes(box_data: Dict[int, Dict[str, Any]]):
     if epd:
         # Display on actual e-ink
         try:
-            epd.display(epd.getbuffer(image))
+            # Decide whether to do full or partial refresh
+            full_refresh_counter += 1
+            use_full_refresh = force_full_refresh or (full_refresh_counter >= FULL_REFRESH_INTERVAL)
+            
+            if use_full_refresh:
+                # Full refresh (with black flash) - clears ghosting
+                print("Display: Full refresh")
+                epd.init()  # Re-initialize for full refresh
+                epd.display(epd.getbuffer(image))
+                full_refresh_counter = 0
+            else:
+                # Partial refresh (no flash) - faster updates
+                print("Display: Partial refresh")
+                try:
+                    # Try partial refresh mode
+                    epd.init_part()
+                    epd.display_Partial(epd.getbuffer(image), 0, 0, epd.width, epd.height)
+                except AttributeError:
+                    # Fallback if partial refresh not available
+                    print("Partial refresh not available, using full refresh")
+                    epd.init()
+                    epd.display(epd.getbuffer(image))
+                    
             print("Display updated successfully")
         except Exception as e:
             print(f"Error updating display: {e}")
