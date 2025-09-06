@@ -30,6 +30,29 @@ font_text = None
 full_refresh_counter = 0
 FULL_REFRESH_INTERVAL = 10  # Do full refresh every 10 updates
 
+def load_file_icon():
+    """Load the SVG file icon"""
+    global file_icon
+    try:
+        import cairosvg
+        from io import BytesIO
+        
+        # Convert SVG to PNG in memory
+        png_data = cairosvg.svg2png(url="icons/file-regular-full.svg", output_width=24, output_height=24)
+        icon = Image.open(BytesIO(png_data))
+        
+        # Convert to 1-bit for e-ink
+        file_icon = icon.convert('1')
+        print("File icon loaded from SVG")
+        return True
+        
+    except ImportError:
+        print("cairosvg not available - install with: pip install cairosvg")
+        return False
+    except Exception as e:
+        print(f"Error loading SVG icon: {e}")
+        return False
+
 def init_display():
     """Initialize the e-ink display"""
     global epd, fonts_loaded, font_title, font_box_number, font_text
@@ -62,6 +85,9 @@ def init_display():
         font_box_number = ImageFont.load_default()
         font_text = ImageFont.load_default()
         fonts_loaded = True
+    
+    # Load file icon
+    load_file_icon()
 
 def clear_display():
     """Clear the display completely"""
