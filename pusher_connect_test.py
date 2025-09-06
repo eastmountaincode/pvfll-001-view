@@ -55,6 +55,10 @@ pusher.connection.bind('pusher:error', on_error)
 # Connect
 pusher.connect()
 
+# Wait a moment for connection to establish
+print("Waiting for connection to establish...")
+time.sleep(2)
+
 # Subscribe to channel
 print(f"Subscribing to channel '{PUSHER_CHANNEL}'...")
 channel = pusher.subscribe(PUSHER_CHANNEL)
@@ -67,8 +71,9 @@ channel.bind('pusher:subscription_error', lambda data: print(f"✗ Subscription 
 channel.bind('file-uploaded', on_file_event)
 channel.bind('file-deleted', on_file_event)
 
-# Debug: bind to all events on this channel
-channel.bind_all(on_any_event)
+# Debug: bind to common events (pysher doesn't have bind_all)
+channel.bind('pusher:member_added', lambda data: print(f"🔔 Member added: {data}"))
+channel.bind('pusher:member_removed', lambda data: print(f"🔔 Member removed: {data}"))
 
 print(f"Listening for events on channel '{PUSHER_CHANNEL}'...")
 print("Upload or delete files to see real-time events!")
