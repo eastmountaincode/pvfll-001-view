@@ -6,6 +6,7 @@ Simple API client to fetch box status from pvfll_001 Next.js app
 import requests
 import json
 import os
+import mimetypes
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 
@@ -15,6 +16,33 @@ load_dotenv('.env.local')
 # Configuration
 API_BASE = os.getenv("API_BASE")
 HTTP_TIMEOUT = int(os.getenv("HTTP_TIMEOUT"))
+
+def get_file_type(filename: str) -> str:
+    """Get file type from filename extension"""
+    if not filename:
+        return "Unknown"
+    
+    mime_type, _ = mimetypes.guess_type(filename)
+    if mime_type:
+        # Convert MIME type to friendly name
+        if mime_type.startswith('image/'):
+            return f"Image ({mime_type.split('/')[-1].upper()})"
+        elif mime_type.startswith('text/'):
+            return f"Text ({mime_type.split('/')[-1].upper()})"
+        elif mime_type.startswith('audio/'):
+            return f"Audio ({mime_type.split('/')[-1].upper()})"
+        elif mime_type.startswith('video/'):
+            return f"Video ({mime_type.split('/')[-1].upper()})"
+        elif 'pdf' in mime_type:
+            return "PDF"
+        elif 'zip' in mime_type or 'compressed' in mime_type:
+            return "Archive"
+        else:
+            return mime_type
+    else:
+        # Fallback to extension
+        ext = filename.split('.')[-1].upper() if '.' in filename else "Unknown"
+        return f".{ext}" if ext != "Unknown" else "Unknown"
 
 def fetch_box_status(box_number: int) -> Dict[str, Any]:
     """
@@ -30,6 +58,11 @@ def fetch_box_status(box_number: int) -> Dict[str, Any]:
         
         # Ensure we always have an 'empty' field
         data.setdefault("empty", True)
+        
+        # Add file type if we have a filename
+        if not data.get("empty") and data.get("name"):
+            data["type"] = get_file_type(data["name"])
+        
         return data
         
     except requests.exceptions.RequestException as e:
@@ -85,6 +118,7 @@ def print_box_status(box_data: Dict[int, Dict[str, Any]]):
         else:
             print("  Status: Has file")
             print(f"  Name: {data.get('name', 'Unknown')}")
+            print(f"  Type: {data.get('type', 'Unknown')}")
             print(f"  Size: {format_size(data.get('size'))}")
 
 # Test function - run this file directly to test the API
