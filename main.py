@@ -8,7 +8,7 @@ import time
 import signal
 import sys
 from api import fetch_all_boxes
-from display import init_display, display_boxes, sleep_display
+from display import init_display, display_boxes, clear_display, sleep_display
 
 # Global flag for graceful shutdown
 running = True
@@ -18,6 +18,8 @@ def signal_handler(sig, frame):
     global running
     print("\nShutting down gracefully...")
     running = False
+    print("Clearing display...")
+    clear_display()
     sleep_display()
     sys.exit(0)
 

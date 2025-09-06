@@ -60,11 +60,27 @@ def init_display():
         font_text = ImageFont.load_default()
         fonts_loaded = True
 
+def clear_display():
+    """Clear the display completely"""
+    if epd:
+        try:
+            epd.Clear()
+            print("Display cleared")
+        except Exception as e:
+            print(f"Error clearing display: {e}")
+    else:
+        print("[MOCK] Display cleared")
+
 def sleep_display():
     """Put the display to sleep"""
     if epd:
-        epd.sleep()
-        print("Display sleeping")
+        try:
+            epd.sleep()
+            print("Display sleeping")
+        except Exception as e:
+            print(f"Error putting display to sleep: {e}")
+    else:
+        print("[MOCK] Display sleeping")
 
 def create_layout_image(box_data: Dict[int, Dict[str, Any]]) -> Image.Image:
     """Create the layout image showing all box statuses"""
