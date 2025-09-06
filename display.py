@@ -37,12 +37,11 @@ def load_file_icon():
         import cairosvg
         from io import BytesIO
         
-        # Convert SVG to PNG in memory with transparent background
+        # Convert SVG to PNG in memory - make it bigger and transparent
         png_data = cairosvg.svg2png(
             url="icons/file-regular-full.svg", 
-            output_width=24, 
-            output_height=24,
-            background_color="white"
+            output_width=32, 
+            output_height=32
         )
         icon = Image.open(BytesIO(png_data))
         
@@ -50,12 +49,16 @@ def load_file_icon():
         if icon.mode != 'RGBA':
             icon = icon.convert('RGBA')
         
-        # Create a white background and paste the icon
-        white_bg = Image.new('RGBA', (24, 24), (255, 255, 255, 255))
+        # Create a white background image
+        white_bg = Image.new('RGBA', (32, 32), (255, 255, 255, 255))
+        
+        # Paste the icon with proper alpha compositing
         white_bg.paste(icon, (0, 0), icon)
         
-        # Convert to 1-bit for e-ink (white=255, black=0)
-        file_icon = white_bg.convert('1')
+        # Convert to 1-bit for e-ink, but invert colors so icon is black on white
+        grayscale = white_bg.convert('L')
+        # Invert the colors: white background stays white, black icon stays black
+        file_icon = grayscale.convert('1')
         print("File icon loaded from SVG")
         return True
         
