@@ -39,7 +39,7 @@ def load_file_icon():
         
         # Convert SVG to PNG with completely transparent background
         png_data = cairosvg.svg2png(
-            url="icons/file-regular-full.svg", 
+            url="images/file-regular-full.svg", 
             output_width=48, 
             output_height=48,
             background_color="rgba(0,0,0,0)"  # Fully transparent background
@@ -188,7 +188,7 @@ def draw_box(draw, x, y, width, height, box_num, box_data):
     
     # File icon in upper right if there's a file
     if not box_data.get("empty", True) and file_icon:
-        icon_x = x + width - file_icon.width - 2  # Just 2 pixels from right edge
+        icon_x = x + width - file_icon.width - 0  # Just 2 pixels from right edge
         icon_y = y + padding
         # Draw the file icon using bitmap (simpler approach)
         draw.bitmap((icon_x, icon_y), file_icon, fill=0)
