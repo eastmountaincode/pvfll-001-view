@@ -64,6 +64,7 @@ class PusherListener:
                 # Connection event handlers
                 self.pusher.connection.bind('pusher:connection_established', self._on_connect)
                 self.pusher.connection.bind('pusher:connection_failed', self._on_connection_failed)
+                self.pusher.connection.bind('pusher:error', self._on_error)
                 
                 # Connect first
                 self.pusher.connect()
@@ -106,6 +107,19 @@ class PusherListener:
     def _on_connection_failed(self, data):
         """Called when Pusher connection fails"""
         print(f"✗ Pusher connection failed: {data}")
+        print(f"Debug: Using key {PUSHER_APP_KEY[:8]}... on cluster {PUSHER_CLUSTER}")
+        print("Check that your PUSHER_APP_KEY is correct and matches your cluster")
+        self.connected = False
+    
+    def _on_error(self, data):
+        """Called when Pusher error occurs"""
+        print(f"✗ Pusher error: {data}")
+        if '4001' in str(data):
+            print("Error 4001: Application does not exist or invalid key")
+            print("Solutions:")
+            print("1. Check your PUSHER_APP_KEY in .env.local")
+            print("2. Make sure it matches your Pusher app dashboard")
+            print("3. Verify your app is in the correct cluster")
         self.connected = False
     
     def _on_file_event(self, data):
