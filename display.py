@@ -191,9 +191,8 @@ def display_boxes(box_data: Dict[int, Dict[str, Any]]):
         except Exception as e:
             print(f"Error updating display: {e}")
     else:
-        # Mock mode - save image for testing
-        image.save("display_preview.png")
-        print("Display preview saved as 'display_preview.png'")
+        # Mock mode - no hardware available
+        print("Display rendered (no hardware available)")
 
 # Test function
 if __name__ == "__main__":
