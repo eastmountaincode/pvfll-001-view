@@ -25,14 +25,14 @@ except ImportError:
 epd = None
 fonts_loaded = False
 font_title = None
-font_box_title = None
+font_box_number = None
 font_text = None
 full_refresh_counter = 0
 FULL_REFRESH_INTERVAL = 10  # Do full refresh every 10 updates
 
 def init_display():
     """Initialize the e-ink display"""
-    global epd, fonts_loaded, font_title, font_box_title, font_text
+    global epd, fonts_loaded, font_title, font_box_number, font_text
     
     if epd7in5_V2 is None:
         print("[MOCK] Display initialized (no hardware)")
@@ -51,14 +51,15 @@ def init_display():
     try:
         # Try to load system fonts (adjust paths as needed)
         font_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 32)
-        font_box_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
+        # Make box numbers much larger and bolder (font-black equivalent)
+        font_box_number = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 48)
         font_text = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
         fonts_loaded = True
         print("Fonts loaded")
     except Exception as e:
         print(f"Font loading failed, using default: {e}")
         font_title = ImageFont.load_default()
-        font_box_title = ImageFont.load_default()
+        font_box_number = ImageFont.load_default()
         font_text = ImageFont.load_default()
         fonts_loaded = True
 
@@ -108,7 +109,7 @@ def create_layout_image(box_data: Dict[int, Dict[str, Any]]) -> Image.Image:
     draw.text((title_x, 20), title, font=font_title, fill=0)
     
     # Box layout - 2x2 grid
-    margin = 0
+    margin = 10
     box_width = (width - 3 * margin) // 2
     box_height = (height - 120 - 3 * margin) // 2
     
@@ -131,12 +132,12 @@ def draw_box(draw, x, y, width, height, box_num, box_data):
     # Box border
     draw.rectangle((x, y, x + width, y + height), outline=0, width=2)
     
-    # Box number
+    # Box number - just the number, large and bold (font-black style)
     padding = 10
-    draw.text((x + padding, y + padding), f"Box {box_num}", font=font_box_title, fill=0)
+    draw.text((x + padding, y + padding), str(box_num), font=font_box_number, fill=0)
     
-    # Status
-    text_y = y + padding + 30
+    # Status - adjust position for larger box number
+    text_y = y + padding + 60
     
     if box_data.get("error"):
         draw.text((x + padding, text_y), "ERROR", font=font_text, fill=0)
