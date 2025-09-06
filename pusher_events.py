@@ -12,15 +12,19 @@ from dotenv import load_dotenv
 
 # Try different pusher client packages
 try:
-    from pusherclient import Pusher
+    import pusherclient
     print("Using pusherclient package")
+    PUSHER_AVAILABLE = True
 except ImportError:
     try:
         from pusher_client_python import Pusher
         print("Using pusher_client_python package")
+        PUSHER_AVAILABLE = True
+        pusherclient = None
     except ImportError:
         print("Error: No Pusher client package found. Install with: pip3 install pusherclient")
-        Pusher = None
+        PUSHER_AVAILABLE = False
+        pusherclient = None
 
 # Load environment variables
 load_dotenv('.env.local')
@@ -43,7 +47,7 @@ class PusherListener:
         
     def connect(self):
         """Connect to Pusher and subscribe to the garden channel"""
-        if Pusher is None:
+        if not PUSHER_AVAILABLE:
             print("Warning: Pusher client not available. Real-time updates disabled.")
             return False
             
@@ -52,26 +56,40 @@ class PusherListener:
             return False
             
         try:
-            # Create Pusher client
-            self.pusher = Pusher(
-                key=PUSHER_APP_KEY,  # Note: some packages use 'key' instead of 'app_key'
-                cluster=PUSHER_CLUSTER,
-                secure=True
-            )
-            
-            # Connection event handlers
-            self.pusher.connection.bind('pusher:connection_established', self._on_connect)
-            self.pusher.connection.bind('pusher:connection_failed', self._on_connection_failed)
-            
-            # Subscribe to the garden channel
-            self.channel = self.pusher.subscribe(PUSHER_CHANNEL)
-            
-            # Bind to file events
-            self.channel.bind('file-uploaded', self._on_file_event)
-            self.channel.bind('file-deleted', self._on_file_event)
-            
-            # Connect
-            self.pusher.connect()
+            # Create Pusher client using pusherclient package
+            if pusherclient:
+                # pusherclient package API
+                self.pusher = pusherclient.Pusher(PUSHER_APP_KEY)
+                
+                # Connection event handlers
+                self.pusher.connection.bind('pusher:connection_established', self._on_connect)
+                self.pusher.connection.bind('pusher:connection_failed', self._on_connection_failed)
+                
+                # Connect first
+                self.pusher.connect()
+                
+                # Subscribe to the garden channel
+                self.channel = self.pusher.subscribe(PUSHER_CHANNEL)
+                
+                # Bind to file events
+                self.channel.bind('file-uploaded', self._on_file_event)
+                self.channel.bind('file-deleted', self._on_file_event)
+            else:
+                # Alternative pusher package API
+                self.pusher = Pusher(
+                    key=PUSHER_APP_KEY,
+                    cluster=PUSHER_CLUSTER,
+                    secure=True
+                )
+                
+                self.pusher.connection.bind('pusher:connection_established', self._on_connect)
+                self.pusher.connection.bind('pusher:connection_failed', self._on_connection_failed)
+                
+                self.channel = self.pusher.subscribe(PUSHER_CHANNEL)
+                self.channel.bind('file-uploaded', self._on_file_event)
+                self.channel.bind('file-deleted', self._on_file_event)
+                
+                self.pusher.connect()
             
             print(f"Connecting to Pusher (key: {PUSHER_APP_KEY[:8]}..., cluster: {PUSHER_CLUSTER})")
             return True
