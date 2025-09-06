@@ -19,18 +19,24 @@ except Exception as e:
 
 def on_connect(data):
     print("✓ Connected to Pusher")
+    print(f"Connection data: {data}")
 
 def on_subscription_succeeded(data):
     print(f"✓ Subscribed to '{PUSHER_CHANNEL}'")
+    print(f"Subscription data: {data}")
 
 def on_file_event(data):
     print(f"📡 Event received: {data}")
+    print(f"Event type: {type(data)}")
 
 def on_error(error):
     print(f"✗ Pusher error: {error}")
 
 def on_connection_state_change(previous_state, current_state):
     print(f"Connection state: {previous_state} → {current_state}")
+
+def on_any_event(event_name, data):
+    print(f"🔔 Any event: {event_name} → {data}")
 
 print(f"Connecting with key={PUSHER_APP_KEY[:8]}…  cluster={PUSHER_CLUSTER}")
 
@@ -50,13 +56,24 @@ pusher.connection.bind('pusher:error', on_error)
 pusher.connect()
 
 # Subscribe to channel
+print(f"Subscribing to channel '{PUSHER_CHANNEL}'...")
 channel = pusher.subscribe(PUSHER_CHANNEL)
+
+# Bind to subscription events
 channel.bind('pusher:subscription_succeeded', on_subscription_succeeded)
+channel.bind('pusher:subscription_error', lambda data: print(f"✗ Subscription error: {data}"))
+
+# Bind to file events
 channel.bind('file-uploaded', on_file_event)
 channel.bind('file-deleted', on_file_event)
 
+# Debug: bind to all events on this channel
+channel.bind_all(on_any_event)
+
 print(f"Listening for events on channel '{PUSHER_CHANNEL}'...")
 print("Upload or delete files to see real-time events!")
+print(f"Debug: Channel object: {channel}")
+print(f"Debug: Pusher state: {pusher.connection.state}")
 
 # Keep alive
 try:
