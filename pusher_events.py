@@ -10,21 +10,15 @@ import threading
 import time
 from dotenv import load_dotenv
 
-# Try different pusher client packages
+# Try pysher package
 try:
-    import pusherclient
-    print("Using pusherclient package")
+    import pysher
+    print("Using pysher package")
     PUSHER_AVAILABLE = True
 except ImportError:
-    try:
-        from pusher_client_python import Pusher
-        print("Using pusher_client_python package")
-        PUSHER_AVAILABLE = True
-        pusherclient = None
-    except ImportError:
-        print("Error: No Pusher client package found. Install with: pip3 install pusherclient")
-        PUSHER_AVAILABLE = False
-        pusherclient = None
+    print("Error: pysher not found. Install with: pip install pysher")
+    PUSHER_AVAILABLE = False
+    pysher = None
 
 # Load environment variables
 load_dotenv('.env.local')
@@ -56,41 +50,30 @@ class PusherListener:
             return False
             
         try:
-            # Create Pusher client using pusherclient package
-            if pusherclient:
-                # pusherclient package API
-                self.pusher = pusherclient.Pusher(PUSHER_APP_KEY)
-                
-                # Connection event handlers
-                self.pusher.connection.bind('pusher:connection_established', self._on_connect)
-                self.pusher.connection.bind('pusher:connection_failed', self._on_connection_failed)
-                self.pusher.connection.bind('pusher:error', self._on_error)
-                
-                # Connect first
-                self.pusher.connect()
-                
-                # Subscribe to the garden channel
-                self.channel = self.pusher.subscribe(PUSHER_CHANNEL)
-                
-                # Bind to file events
-                self.channel.bind('file-uploaded', self._on_file_event)
-                self.channel.bind('file-deleted', self._on_file_event)
-            else:
-                # Alternative pusher package API
-                self.pusher = Pusher(
-                    key=PUSHER_APP_KEY,
-                    cluster=PUSHER_CLUSTER,
-                    secure=True
-                )
-                
-                self.pusher.connection.bind('pusher:connection_established', self._on_connect)
-                self.pusher.connection.bind('pusher:connection_failed', self._on_connection_failed)
-                
-                self.channel = self.pusher.subscribe(PUSHER_CHANNEL)
-                self.channel.bind('file-uploaded', self._on_file_event)
-                self.channel.bind('file-deleted', self._on_file_event)
-                
-                self.pusher.connect()
+            # Create pysher client
+            self.pusher = pysher.Pusher(
+                PUSHER_APP_KEY,
+                cluster=PUSHER_CLUSTER,
+                secure=True
+            )
+            
+            # Connection event handlers
+            self.pusher.connection.bind('pusher:connection_established', self._on_connect)
+            self.pusher.connection.bind('pusher:connection_failed', self._on_connection_failed)
+            self.pusher.connection.bind('pusher:error', self._on_error)
+            
+            # Connect first
+            self.pusher.connect()
+            
+            # Wait a moment for connection to establish
+            time.sleep(1)
+            
+            # Subscribe to the garden channel
+            self.channel = self.pusher.subscribe(PUSHER_CHANNEL)
+            
+            # Bind to file events
+            self.channel.bind('file-uploaded', self._on_file_event)
+            self.channel.bind('file-deleted', self._on_file_event)
             
             print(f"Connecting to Pusher (key: {PUSHER_APP_KEY[:8]}..., cluster: {PUSHER_CLUSTER})")
             return True
@@ -126,6 +109,14 @@ class PusherListener:
         """Called when a file event (upload/delete) occurs"""
         try:
             print(f"📡 Pusher event received: {data}")
+            
+            # pysher passes data as JSON string, parse it
+            if isinstance(data, str):
+                try:
+                    data = json.loads(data)
+                except json.JSONDecodeError:
+                    print(f"Warning: Could not parse event data as JSON: {data}")
+                    return
             
             # Extract box number from the event data
             box_number = data.get('boxNumber')
