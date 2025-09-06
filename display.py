@@ -108,7 +108,7 @@ def create_layout_image(box_data: Dict[int, Dict[str, Any]]) -> Image.Image:
     draw.text((title_x, 20), title, font=font_title, fill=0)
     
     # Box layout - 2x2 grid
-    margin = 40
+    margin = 0
     box_width = (width - 3 * margin) // 2
     box_height = (height - 120 - 3 * margin) // 2
     
