@@ -172,6 +172,13 @@ def draw_box(draw, x, y, width, height, box_num, box_data):
     padding = 10
     draw.text((x + padding, y + padding), str(box_num), font=font_box_number, fill=0)
     
+    # File icon in upper right if there's a file
+    if not box_data.get("empty", True) and file_icon:
+        icon_x = x + width - file_icon.width - padding
+        icon_y = y + padding
+        # Draw the file icon
+        draw.bitmap((icon_x, icon_y), file_icon, fill=0)
+    
     # Status - adjust position for larger box number
     text_y = y + padding + 60
     
