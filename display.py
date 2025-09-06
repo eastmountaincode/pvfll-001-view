@@ -114,15 +114,17 @@ def init_display():
     load_file_icon()
 
 def clear_display():
-    """Clear the display completely"""
+    """Clear the display completely to white"""
     if epd:
         try:
-            epd.Clear()
-            print("Display cleared")
+            # Create a white image and display it to ensure white background
+            white_image = Image.new('1', (epd.width, epd.height), 255)  # 255 = white
+            epd.display(epd.getbuffer(white_image))
+            print("Display cleared to white")
         except Exception as e:
             print(f"Error clearing display: {e}")
     else:
-        print("[MOCK] Display cleared")
+        print("[MOCK] Display cleared to white")
 
 def sleep_display():
     """Put the display to sleep"""
@@ -188,7 +190,7 @@ def draw_box(draw, x, y, width, height, box_num, box_data):
     
     # File icon in upper right if there's a file
     if not box_data.get("empty", True) and file_icon:
-        icon_x = x + width - file_icon.width + 10 
+        icon_x = x + width - file_icon.width + 7 
         icon_y = y + padding
         # Draw the file icon using bitmap (simpler approach)
         draw.bitmap((icon_x, icon_y), file_icon, fill=0)
