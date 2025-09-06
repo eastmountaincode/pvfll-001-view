@@ -188,7 +188,7 @@ def draw_box(draw, x, y, width, height, box_num, box_data):
     
     # File icon in upper right if there's a file
     if not box_data.get("empty", True) and file_icon:
-        icon_x = x + width - file_icon.width + 20 
+        icon_x = x + width - file_icon.width + 10 
         icon_y = y + padding
         # Draw the file icon using bitmap (simpler approach)
         draw.bitmap((icon_x, icon_y), file_icon, fill=0)
