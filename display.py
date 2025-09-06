@@ -37,28 +37,30 @@ def load_file_icon():
         import cairosvg
         from io import BytesIO
         
-        # Convert SVG to PNG in memory - make it bigger and transparent
+        # Convert SVG to PNG with completely transparent background
         png_data = cairosvg.svg2png(
             url="icons/file-regular-full.svg", 
-            output_width=32, 
-            output_height=32
+            output_width=64, 
+            output_height=64,
+            background_color="rgba(0,0,0,0)"  # Fully transparent background
         )
         icon = Image.open(BytesIO(png_data))
         
-        # Convert to RGBA first to handle transparency properly
-        if icon.mode != 'RGBA':
-            icon = icon.convert('RGBA')
+        # Create a pure white background
+        white_bg = Image.new('RGB', (64, 64), (255, 255, 255))
         
-        # Create a white background image
-        white_bg = Image.new('RGBA', (32, 32), (255, 255, 255, 255))
+        # If icon has transparency, handle it properly
+        if icon.mode == 'RGBA':
+            # Create a mask from the alpha channel
+            mask = icon.split()[-1]  # Get alpha channel
+            # Paste only the RGB part with the alpha mask
+            white_bg.paste(icon.convert('RGB'), (0, 0), mask)
+        else:
+            white_bg.paste(icon, (0, 0))
         
-        # Paste the icon with proper alpha compositing
-        white_bg.paste(icon, (0, 0), icon)
-        
-        # Convert to 1-bit for e-ink, but invert colors so icon is black on white
-        grayscale = white_bg.convert('L')
-        # Invert the colors: white background stays white, black icon stays black
-        file_icon = grayscale.convert('1')
+        # Convert to 1-bit for e-ink
+        file_icon = white_bg.convert('1')
+        print(f"File icon loaded: {file_icon.mode}, size: {file_icon.size}")
         print("File icon loaded from SVG")
         return True
         
