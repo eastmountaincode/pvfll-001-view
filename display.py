@@ -215,8 +215,8 @@ def draw_box(draw, x, y, width, height, box_num, box_data):
         size = format_size(box_data.get("size", 0))
         
         # Truncate long filenames
-        if len(name) > 20:
-            name = name[:17] + "..."
+        if len(name) > 30:
+            name = name[:27] + "..."
         
         draw.text((x + padding, text_y), f"File: {name}", font=font_text, fill=0)
         text_y += 22
