@@ -44,30 +44,36 @@ def get_file_type(filename: str) -> str:
         ext = filename.split('.')[-1].upper() if '.' in filename else "Unknown"
         return f".{ext}" if ext != "Unknown" else "Unknown"
 
-def fetch_box_status(box_number: int) -> Dict[str, Any]:
+def fetch_box_status(box_number: int, retries: int = 5, delay: int = 3) -> Dict[str, Any]:
     """
-    Fetch the status of a single box
-    Returns: {"empty": True} or {"empty": False, "name": "filename.txt", "size": 12345}
+    Fetch the status of a single box with retries
     """
     url = f"{API_BASE}/boxes/{box_number}/files"
-    
-    try:
-        response = requests.get(url, timeout=HTTP_TIMEOUT)
-        response.raise_for_status()
-        data = response.json()
-        
-        # Ensure we always have an 'empty' field
-        data.setdefault("empty", True)
-        
-        # Add file type if we have a filename
-        if not data.get("empty") and data.get("name"):
-            data["type"] = get_file_type(data["name"])
-        
-        return data
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching box {box_number}: {e}")
-        return {"empty": True, "error": str(e)}
+
+    for attempt in range(retries):
+        try:
+            response = requests.get(url, timeout=HTTP_TIMEOUT)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Ensure we always have an 'empty' field
+            data.setdefault("empty", True)
+
+            # Add file type if we have a filename
+            if not data.get("empty") and data.get("name"):
+                data["type"] = get_file_type(data["name"])
+
+            return data
+
+        except requests.exceptions.RequestException as e:
+            print(f"Attempt {attempt + 1}/{retries} failed for box {box_number}: {e}")
+            if attempt < retries - 1:
+                print(f"Retrying in {delay} seconds...")
+                time.sleep(delay)
+            else:
+                print(f"All attempts failed for box {box_number}. Marking as empty.")
+                return {"empty": True, "error": str(e)}
+
 
 def fetch_all_boxes() -> Dict[int, Dict[str, Any]]:
     """
