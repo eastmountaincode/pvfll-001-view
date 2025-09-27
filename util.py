@@ -1,4 +1,6 @@
 import subprocess
+import mimetypes
+
 
 def format_size(bytes_value):
     """Format file size - copied from api.py for consistency"""

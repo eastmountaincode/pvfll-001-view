@@ -6,7 +6,6 @@ Simple API client to fetch box status from pvfll_001 Next.js app
 import requests
 import json
 import os
-import mimetypes
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 import time
