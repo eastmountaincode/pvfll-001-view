@@ -33,27 +33,6 @@ def signal_handler(sig, frame):
     sleep_display()
     sys.exit(0)
 
-def update_single_box(box_number):
-    """Update a single box and refresh the display"""
-    global current_box_data
-    
-    try:
-        # Fetch updated data for this box
-        new_data = fetch_box_status(box_number)
-        
-        # Update our state
-        with data_lock:
-            current_box_data[box_number] = new_data
-            # Make a copy for display (to avoid holding the lock)
-            display_data = dict(current_box_data)
-        
-        # Update the display
-        print(f"📺 Refreshing display for box {box_number}")
-        display_boxes(display_data)
-        
-    except Exception as e:
-        print(f"Error updating box {box_number}: {e}")
-
 def main():
     """Main application loop"""
     global running, current_box_data, pusher_listener
@@ -86,7 +65,19 @@ def main():
     
     # Set up Pusher for real-time updates
     print("Setting up real-time updates...")
-    pusher_listener = PusherListener(on_box_update_callback=update_single_box)
+    def on_box_update(box_number: int):
+        """Fetch fresh data for one box via API and refresh the display."""
+        try:
+            new_data = fetch_box_status(box_number)
+            with data_lock:
+                current_box_data[box_number] = new_data
+                display_data = dict(current_box_data)
+            print(f"📺 Refreshing display for box {box_number}")
+            display_boxes(display_data)
+        except Exception as e:
+            print(f"Error updating box {box_number}: {e}")
+
+    pusher_listener = PusherListener(on_box_update_callback=on_box_update)
     
     if pusher_listener.connect():
         print("✓ Real-time updates enabled")

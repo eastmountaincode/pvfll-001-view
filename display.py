@@ -9,6 +9,7 @@ import os
 import logging
 from PIL import Image, ImageDraw, ImageFont
 from typing import Dict, Any
+from util import format_size
 
 # Add the waveshare library path (adjust if needed)
 libdir = "/home/virtual/pvfll/e-Paper/RaspberryPi_JetsonNano/python/lib"
@@ -18,8 +19,9 @@ if os.path.exists(libdir):
 try:
     from waveshare_epd import epd7in5_V2
 except ImportError:
-    print("Warning: waveshare_epd not found. Display functions will be mocked.")
-    epd7in5_V2 = None
+    raise ImportError(
+        "waveshare_epd not found. Install the Waveshare e-Paper Python library and ensure lib path is correct."
+    )
 
 # Global display object
 epd = None
@@ -29,6 +31,7 @@ font_box_number = None
 font_text = None
 full_refresh_counter = 0
 FULL_REFRESH_INTERVAL = 10  # Do full refresh every 10 updates
+file_icon = None
 
 def load_file_icon():
     """Load the SVG file icon using cairosvg"""
@@ -82,8 +85,7 @@ def init_display():
     global epd, fonts_loaded, font_title, font_box_number, font_text
     
     if epd7in5_V2 is None:
-        print("[MOCK] Display initialized (no hardware)")
-        return
+        raise RuntimeError("Waveshare e-Paper display library not available.")
     
     try:
         epd = epd7in5_V2.EPD()
@@ -115,27 +117,25 @@ def init_display():
 
 def clear_display():
     """Clear the display completely to white"""
-    if epd:
-        try:
-            # Create a white image and display it to ensure white background
-            white_image = Image.new('1', (epd.width, epd.height), 255)  # 255 = white
-            epd.display(epd.getbuffer(white_image))
-            print("Display cleared to white")
-        except Exception as e:
-            print(f"Error clearing display: {e}")
-    else:
-        print("[MOCK] Display cleared to white")
+    if epd is None:
+        raise RuntimeError("Display not initialized. Call init_display() first.")
+    try:
+        # Create a white image and display it to ensure white background
+        white_image = Image.new('1', (epd.width, epd.height), 255)  # 255 = white
+        epd.display(epd.getbuffer(white_image))
+        print("Display cleared to white")
+    except Exception as e:
+        print(f"Error clearing display: {e}")
 
 def sleep_display():
     """Put the display to sleep"""
-    if epd:
-        try:
-            epd.sleep()
-            print("Display sleeping")
-        except Exception as e:
-            print(f"Error putting display to sleep: {e}")
-    else:
-        print("[MOCK] Display sleeping")
+    if epd is None:
+        raise RuntimeError("Display not initialized. Call init_display() first.")
+    try:
+        epd.sleep()
+        print("Display sleeping")
+    except Exception as e:
+        print(f"Error putting display to sleep: {e}")
 
 def force_full_refresh():
     """Force the next display update to use full refresh"""
@@ -224,24 +224,6 @@ def draw_box(draw, x, y, width, height, box_num, box_data):
         text_y += 22
         draw.text((x + padding, text_y), f"Size: {size}", font=font_text, fill=0)
 
-def format_size(bytes_value):
-    """Format file size - copied from api.py for consistency"""
-    if bytes_value is None or bytes_value == 0:
-        return "0 B"
-    
-    units = ["B", "KB", "MB", "GB"]
-    size = float(bytes_value)
-    unit_index = 0
-    
-    while size >= 1024 and unit_index < len(units) - 1:
-        size /= 1024
-        unit_index += 1
-    
-    if unit_index == 0:
-        return f"{int(size)} {units[unit_index]}"
-    else:
-        return f"{size:.1f} {units[unit_index]}"
-
 def display_boxes(box_data: Dict[int, Dict[str, Any]], force_full_refresh=False):
     """Main function to display box data on e-ink screen"""
     global full_refresh_counter
@@ -251,38 +233,36 @@ def display_boxes(box_data: Dict[int, Dict[str, Any]], force_full_refresh=False)
     # Create the image
     image = create_layout_image(box_data)
     
-    if epd:
-        # Display on actual e-ink
-        try:
-            # Decide whether to do full or partial refresh
-            full_refresh_counter += 1
-            use_full_refresh = force_full_refresh or (full_refresh_counter >= FULL_REFRESH_INTERVAL)
-            
-            if use_full_refresh:
-                # Full refresh (with black flash) - clears ghosting
-                print("Display: Full refresh")
-                epd.init()  # Re-initialize for full refresh
+    if epd is None:
+        raise RuntimeError("Display not initialized. Call init_display() first.")
+    # Display on actual e-ink
+    try:
+        # Decide whether to do full or partial refresh
+        full_refresh_counter += 1
+        use_full_refresh = force_full_refresh or (full_refresh_counter >= FULL_REFRESH_INTERVAL)
+        
+        if use_full_refresh:
+            # Full refresh (with black flash) - clears ghosting
+            print("Display: Full refresh")
+            epd.init()  # Re-initialize for full refresh
+            epd.display(epd.getbuffer(image))
+            full_refresh_counter = 0
+        else:
+            # Partial refresh (no flash) - faster updates
+            print("Display: Partial refresh")
+            try:
+                # Try partial refresh mode
+                epd.init_part()
+                epd.display_Partial(epd.getbuffer(image), 0, 0, epd.width, epd.height)
+            except AttributeError:
+                # Fallback if partial refresh not available
+                print("Partial refresh not available, using full refresh")
+                epd.init()
                 epd.display(epd.getbuffer(image))
-                full_refresh_counter = 0
-            else:
-                # Partial refresh (no flash) - faster updates
-                print("Display: Partial refresh")
-                try:
-                    # Try partial refresh mode
-                    epd.init_part()
-                    epd.display_Partial(epd.getbuffer(image), 0, 0, epd.width, epd.height)
-                except AttributeError:
-                    # Fallback if partial refresh not available
-                    print("Partial refresh not available, using full refresh")
-                    epd.init()
-                    epd.display(epd.getbuffer(image))
-                    
-            print("Display updated successfully")
-        except Exception as e:
-            print(f"Error updating display: {e}")
-    else:
-        # Mock mode - no hardware available
-        print("Display rendered (no hardware available)")
+                
+        print("Display updated successfully")
+    except Exception as e:
+        print(f"Error updating display: {e}")
 
 # Test function
 if __name__ == "__main__":

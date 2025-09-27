@@ -18,33 +18,6 @@ load_dotenv('.env.local')
 API_BASE = os.getenv("API_BASE")
 HTTP_TIMEOUT = int(os.getenv("HTTP_TIMEOUT"))
 
-def get_file_type(filename: str) -> str:
-    """Get file type from filename extension"""
-    if not filename:
-        return "Unknown"
-    
-    mime_type, _ = mimetypes.guess_type(filename)
-    if mime_type:
-        # Convert MIME type to friendly name
-        if mime_type.startswith('image/'):
-            return f"Image ({mime_type.split('/')[-1].upper()})"
-        elif mime_type.startswith('text/'):
-            return f"Text ({mime_type.split('/')[-1].upper()})"
-        elif mime_type.startswith('audio/'):
-            return f"Audio ({mime_type.split('/')[-1].upper()})"
-        elif mime_type.startswith('video/'):
-            return f"Video ({mime_type.split('/')[-1].upper()})"
-        elif 'pdf' in mime_type:
-            return "PDF"
-        elif 'zip' in mime_type or 'compressed' in mime_type:
-            return "Archive"
-        else:
-            return mime_type
-    else:
-        # Fallback to extension
-        ext = filename.split('.')[-1].upper() if '.' in filename else "Unknown"
-        return f".{ext}" if ext != "Unknown" else "Unknown"
-
 def fetch_box_status(box_number: int, retries: int = 5, delay: int = 3) -> Dict[str, Any]:
     """
     Fetch the status of a single box with retries
