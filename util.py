@@ -20,19 +20,36 @@ def format_size(bytes_value):
     else:
         return f"{size:.1f} {units[unit_index]}"
 
-def is_wifi_connected():
-    """Check if the device is connected to Wi-Fi (via NetworkManager)"""
+import subprocess
+
+def is_wifi_connected() -> bool:
+    """Check if Wi-Fi is connected and has an IP address."""
     try:
-        # Uses nmcli to check if we have a connection
-        result = subprocess.run(
-            ["nmcli", "-t", "-f", "STATE", "g"],
+        # Get the device name for wifi (usually wlan0)
+        dev_result = subprocess.run(
+            ["nmcli", "-t", "-f", "DEVICE,TYPE,STATE", "device"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
         )
-        return "connected" in result.stdout.strip()
+        for line in dev_result.stdout.splitlines():
+            parts = line.split(":")
+            if len(parts) >= 3:
+                device, dev_type, state = parts[0], parts[1], parts[2]
+                if dev_type == "wifi" and state == "connected":
+                    # Check for a valid IP address on this device
+                    ip_result = subprocess.run(
+                        ["nmcli", "-t", "-f", "IP4.ADDRESS", "device", "show", device],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True
+                    )
+                    if ip_result.stdout.strip():
+                        return True
+        return False
     except Exception:
         return False
+
 
 def get_file_type(filename: str) -> str:
     """Get file type from filename extension"""
