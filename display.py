@@ -274,13 +274,14 @@ def display_boxes(box_data: Dict[int, Dict[str, Any]], force_full_refresh=False)
     except Exception as e:
         print(f"Error updating display: {e}")
 
-def display_centered_message(message: str, font_size: int = 32, bold: bool = True) -> None:
-    """Display a single centered text message on the e-ink screen with a full refresh.
+def display_centered_message(message: str, font_size: int = 32, bold: bool = True, full_refresh: bool = True) -> None:
+    """Display a single centered text message on the e-ink screen.
 
     Args:
         message: The text message to display (single line recommended).
         font_size: Font size in points (default 32).
         bold: Whether to use the bold font variant when available.
+        full_refresh: If True, use full refresh (with flash). If False, use partial refresh (faster, no flash).
     """
     if epd is None:
         raise RuntimeError("Display not initialized. Call init_display() first.")
@@ -301,11 +302,24 @@ def display_centered_message(message: str, font_size: int = 32, bold: bool = Tru
     y = (height - text_h) // 2
     draw.text((x, y), message, font=font, fill=0)
 
-    # Full refresh to display the message
+    # Display with chosen refresh mode
     try:
-        epd.init()
-        epd.display(epd.getbuffer(image))
-        print("Centered message displayed")
+        if full_refresh:
+            # Full refresh (with black flash) - clears ghosting
+            epd.init()
+            epd.display(epd.getbuffer(image))
+            print("Centered message displayed (full refresh)")
+        else:
+            # Partial refresh (no flash) - faster updates
+            try:
+                epd.init_part()
+                epd.display_Partial(epd.getbuffer(image), 0, 0, epd.width, epd.height)
+                print("Centered message displayed (partial refresh)")
+            except AttributeError:
+                # Fallback if partial refresh not available
+                print("Partial refresh not available, using full refresh")
+                epd.init()
+                epd.display(epd.getbuffer(image))
     except Exception as e:
         print(f"Error displaying centered message: {e}")
 

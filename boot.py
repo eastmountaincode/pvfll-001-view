@@ -21,39 +21,39 @@ def boot_sequence() -> tuple:
     # Step 1: Initialize display
     try:
         init_display()
-        display_centered_message("Booting system...", font_size=32)
+        display_centered_message("Booting system...", font_size=32, full_refresh=True)  # First message clears screen
         time.sleep(1)
     except Exception as e:
         print(f"Error initializing display: {e}")
         return {}, None
 
     # Step 2: Check Wi-Fi
-    display_centered_message("Checking Wi-Fi...", font_size=28)
+    display_centered_message("Checking Wi-Fi...", font_size=28, full_refresh=False)  # Fast partial refresh
     if not is_wifi_connected():
-        display_centered_message("No Wi-Fi: Please restart", font_size=28)
+        display_centered_message("No Wi-Fi: Please restart", font_size=28, full_refresh=False)
         print("⚠ No Wi-Fi connection detected. Please restart system.")
         return None, None  # Signal boot failure
 
     # Step 3: Connect to WebSocket
-    display_centered_message("Connecting to WebSocket...", font_size=28)
+    display_centered_message("Connecting to WebSocket...", font_size=28, full_refresh=False)  # Fast partial refresh
     pusher_listener = PusherListener(on_box_update_callback=None)  # Main will set the callback later
     if pusher_listener.connect():
-        display_centered_message("WebSocket connected", font_size=28)
+        display_centered_message("WebSocket connected", font_size=28, full_refresh=False)
         print("WebSocket connection established.")
     else:
-        display_centered_message("WebSocket failed: Please restart", font_size=24)
+        display_centered_message("WebSocket failed: Please restart", font_size=24, full_refresh=False)
         print("⚠ Failed to connect to WebSocket. Please restart system.")
         return None, None  # Signal boot failure
 
     # Step 4: Fetch initial data
-    display_centered_message("Fetching data...", font_size=28)
+    display_centered_message("Fetching data...", font_size=28, full_refresh=False)  # Fast partial refresh
     try:
         box_data = fetch_all_boxes()
-        display_centered_message("Boot complete!", font_size=28)
+        display_centered_message("Boot complete!", font_size=28, full_refresh=False)
         print("Initial data fetched successfully.")
         time.sleep(1)
         return box_data, pusher_listener
     except Exception as e:
-        display_centered_message("Data fetch failed: Please restart", font_size=24)
+        display_centered_message("Data fetch failed: Please restart", font_size=24, full_refresh=False)
         print(f"Error during initial fetch: {e}. Please restart system.")
         return None, None  # Signal boot failure
