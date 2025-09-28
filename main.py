@@ -8,9 +8,9 @@ import time
 import signal
 import sys
 import threading
-from api import fetch_all_boxes, fetch_box_status
-from display import init_display, display_boxes, clear_display, sleep_display
-from pusher_events import PusherListener
+from api import fetch_box_status
+from display import display_boxes, clear_display, sleep_display
+from boot import boot_sequence
 
 # Global state
 running = True
@@ -38,56 +38,57 @@ def main():
     global running, current_box_data, pusher_listener
     
     print("=== PVFLL_001 Display System ===")
-    print("Starting up...")
     
     # Set up signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
     signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
     
-    # Initialize display
-    print("Initializing display...")
-    init_display()
+    # Boot handles display init, Wi-Fi, WebSocket, and initial data fetch
+    initial_data, pusher_listener = boot_sequence()
     
-    # Initial fetch and display
-    print("Fetching initial box status...")
-    try:
-        box_data = fetch_all_boxes()
-        
-        # Store initial data
-        with data_lock:
-            current_box_data = box_data
-        
-        print("Displaying initial status...")
-        display_boxes(box_data)
-    except Exception as e:
-        print(f"Error during initial fetch/display: {e}")
+    # Check if boot failed
+    if initial_data is None:
+        print("Boot sequence failed. System halted.")
+        print("Please restart the system to try again.")
+        # Stay in loop to keep the error message on display
+        try:
+            while running:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            signal_handler(None, None)
         return
     
-    # Set up Pusher for real-time updates
-    print("Setting up real-time updates...")
-    def on_box_update(box_number: int):
-        """Fetch fresh data for one box via API and refresh the display."""
-        try:
-            new_data = fetch_box_status(box_number)
-            with data_lock:
-                current_box_data[box_number] = new_data
-                display_data = dict(current_box_data)
-            print(f"📺 Refreshing display for box {box_number}")
-            display_boxes(display_data)
-        except Exception as e:
-            print(f"Error updating box {box_number}: {e}")
-
-    pusher_listener = PusherListener(on_box_update_callback=on_box_update)
+    # Store initial data
+    with data_lock:
+        current_box_data = initial_data
     
-    if pusher_listener.connect():
+    # Display initial status
+    print("Displaying initial status...")
+    display_boxes(initial_data)
+    
+    # Attach callback AFTER boot finishes
+    if pusher_listener:
+        def on_box_update(box_number: int):
+            """Fetch fresh data for one box via API and refresh the display."""
+            try:
+                new_data = fetch_box_status(box_number)
+                with data_lock:
+                    current_box_data[box_number] = new_data
+                    display_data = dict(current_box_data)
+                print(f"📺 Refreshing display for box {box_number}")
+                display_boxes(display_data)
+            except Exception as e:
+                print(f"Error updating box {box_number}: {e}")
+        
+        pusher_listener.on_box_update = on_box_update
         print("✓ Real-time updates enabled")
     else:
-        print("⚠ Real-time updates disabled (continuing without Pusher)")
+        print("⚠ Real-time updates disabled")
     
+    # Main loop - just keep alive
     print("System ready! Press Ctrl+C to exit.")
     print("Display will update automatically when files are uploaded/downloaded.")
     
-    # Main loop - just keep alive
     try:
         while running:
             time.sleep(1)

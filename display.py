@@ -8,7 +8,7 @@ import sys
 import os
 import logging
 from PIL import Image, ImageDraw, ImageFont
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 from util import format_size
 
 # Add the waveshare library path (adjust if needed)
@@ -32,6 +32,24 @@ font_text = None
 full_refresh_counter = 0
 FULL_REFRESH_INTERVAL = 10  # Do full refresh every 10 updates
 file_icon = None
+
+# Font configuration and cache
+FONT_PATH_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+FONT_PATH_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+_font_cache: Dict[Tuple[bool, int], ImageFont.ImageFont] = {}
+
+def get_font(size: int, bold: bool = False) -> ImageFont.ImageFont:
+    """Return a cached PIL ImageFont for the given size and weight."""
+    key = (bold, size)
+    if key in _font_cache:
+        return _font_cache[key]
+    try:
+        path = FONT_PATH_BOLD if bold else FONT_PATH_REGULAR
+        font = ImageFont.truetype(path, size)
+    except Exception:
+        font = ImageFont.load_default()
+    _font_cache[key] = font
+    return font
 
 def load_file_icon():
     """Load the SVG file icon using cairosvg"""
@@ -96,21 +114,13 @@ def init_display():
         print(f"Error initializing display: {e}")
         return
     
-    # Load fonts
-    try:
-        # Try to load system fonts (adjust paths as needed)
-        font_title = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 32)
-        # Make box numbers much larger and bolder (font-black equivalent)
-        font_box_number = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 48)
-        font_text = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
-        fonts_loaded = True
-        print("Fonts loaded")
-    except Exception as e:
-        print(f"Font loading failed, using default: {e}")
-        font_title = ImageFont.load_default()
-        font_box_number = ImageFont.load_default()
-        font_text = ImageFont.load_default()
-        fonts_loaded = True
+    # Load fonts (and warm cache)
+    font_title = get_font(32, bold=True)
+    # Make box numbers much larger and bolder (font-black equivalent)
+    font_box_number = get_font(48, bold=True)
+    font_text = get_font(18, bold=False)
+    fonts_loaded = True
+    print("Fonts loaded")
     
     # Load file icon
     load_file_icon()
@@ -263,6 +273,41 @@ def display_boxes(box_data: Dict[int, Dict[str, Any]], force_full_refresh=False)
         print("Display updated successfully")
     except Exception as e:
         print(f"Error updating display: {e}")
+
+def display_centered_message(message: str, font_size: int = 32, bold: bool = True) -> None:
+    """Display a single centered text message on the e-ink screen with a full refresh.
+
+    Args:
+        message: The text message to display (single line recommended).
+        font_size: Font size in points (default 32).
+        bold: Whether to use the bold font variant when available.
+    """
+    if epd is None:
+        raise RuntimeError("Display not initialized. Call init_display() first.")
+
+    # Create a white canvas
+    width, height = epd.width, epd.height
+    image = Image.new('1', (width, height), 255)
+    draw = ImageDraw.Draw(image)
+
+    # Choose font from cache
+    font = get_font(font_size, bold=bold)
+
+    # Measure text and center
+    bbox = draw.textbbox((0, 0), message, font=font)
+    text_w = bbox[2] - bbox[0]
+    text_h = bbox[3] - bbox[1]
+    x = (width - text_w) // 2
+    y = (height - text_h) // 2
+    draw.text((x, y), message, font=font, fill=0)
+
+    # Full refresh to display the message
+    try:
+        epd.init()
+        epd.display(epd.getbuffer(image))
+        print("Centered message displayed")
+    except Exception as e:
+        print(f"Error displaying centered message: {e}")
 
 # Test function
 if __name__ == "__main__":

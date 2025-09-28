@@ -9,7 +9,7 @@ import os
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 import time
-from util import get_file_type
+from util import get_file_type, format_size
 
 # Load environment variables from .env.local
 load_dotenv('.env.local')
@@ -63,23 +63,6 @@ def fetch_all_boxes() -> Dict[int, Dict[str, Any]]:
     
     return results
 
-def format_size(bytes_value: Optional[int]) -> str:
-    """Helper to format file size in human readable format"""
-    if bytes_value is None or bytes_value == 0:
-        return "0 B"
-    
-    units = ["B", "KB", "MB", "GB"]
-    size = float(bytes_value)
-    unit_index = 0
-    
-    while size >= 1024 and unit_index < len(units) - 1:
-        size /= 1024
-        unit_index += 1
-    
-    if unit_index == 0:
-        return f"{int(size)} {units[unit_index]}"
-    else:
-        return f"{size:.1f} {units[unit_index]}"
 
 def print_box_status(box_data: Dict[int, Dict[str, Any]]):
     """Pretty print the box status for testing"""
