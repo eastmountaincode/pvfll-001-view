@@ -9,7 +9,7 @@ import signal
 import sys
 import threading
 from api import fetch_box_status
-from display import display_boxes, clear_display, sleep_display, show_white_screen
+from display import display_boxes, clear_display, sleep_display
 from boot import boot_sequence
 
 # Global state
@@ -30,10 +30,7 @@ def signal_handler(sig, frame):
     
     print("Clearing display...")
     try:
-        show_white_screen()  # Force white screen first
-        time.sleep(1)  # Give it a moment
-        clear_display()     # Then try the normal clear
-        time.sleep(1)  # Give it another moment
+        clear_display()
     except Exception as e:
         print(f"Error during display cleanup: {e}")
     finally:
