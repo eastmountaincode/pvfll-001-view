@@ -6,7 +6,6 @@ Listens for real-time box update events
 
 import os
 import json
-import threading
 import time
 from dotenv import load_dotenv
 
@@ -16,7 +15,7 @@ try:
     print("Using pysher package")
     PUSHER_AVAILABLE = True
 except ImportError:
-    print("Error: pysher not found. Install with: pip install pysher")
+    print("Error: pysher not found.")
     PUSHER_AVAILABLE = False
     pysher = None
 

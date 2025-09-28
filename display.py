@@ -130,12 +130,38 @@ def clear_display():
     if epd is None:
         raise RuntimeError("Display not initialized. Call init_display() first.")
     try:
-        # Create a white image and display it to ensure white background
-        white_image = Image.new('1', (epd.width, epd.height), 255)  # 255 = white
+        # Method 1: Use the built-in Clear function
+        print("Clearing display with epd.Clear()...")
+        epd.Clear()
+        
+        # Method 2: Also create and display a pure white image with full refresh
+        print("Displaying white image with full refresh...")
+        white_image = Image.new('1', (epd.width, epd.height), 255)  # 255 = white for 1-bit
+        epd.init()  # Full refresh mode
         epd.display(epd.getbuffer(white_image))
+        
+        # Method 3: Try clearing again after the white image
+        print("Final clear...")
+        epd.Clear()
+        
         print("Display cleared to white")
     except Exception as e:
         print(f"Error clearing display: {e}")
+
+def show_white_screen():
+    """Force display to show pure white screen - for testing"""
+    if epd is None:
+        raise RuntimeError("Display not initialized. Call init_display() first.")
+    try:
+        print("Forcing white screen...")
+        # Create pure white image
+        white_image = Image.new('1', (epd.width, epd.height), 255)
+        # Force full refresh
+        epd.init()
+        epd.display(epd.getbuffer(white_image))
+        print("White screen displayed")
+    except Exception as e:
+        print(f"Error showing white screen: {e}")
 
 def sleep_display():
     """Put the display to sleep"""
