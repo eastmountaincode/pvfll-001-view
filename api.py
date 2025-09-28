@@ -18,7 +18,7 @@ load_dotenv('.env.local')
 API_BASE = os.getenv("API_BASE")
 HTTP_TIMEOUT = int(os.getenv("HTTP_TIMEOUT"))
 
-def fetch_box_status(box_number: int, retries: int = 5, delay: int = 3) -> Dict[str, Any]:
+def fetch_box_status(box_number: int, retries: int = 1, delay: int = 3) -> Dict[str, Any]:
     """
     Fetch the status of a single box with retries
     """
