@@ -23,29 +23,36 @@ def format_size(bytes_value):
 import subprocess
 
 def is_wifi_connected() -> bool:
-    """Check if Wi-Fi is connected and has an IP address."""
+    """Check if Wi-Fi is connected and has an IP address (no sudo required)."""
     try:
-        # Get the device name for wifi (usually wlan0)
-        dev_result = subprocess.run(
-            ["nmcli", "-t", "-f", "DEVICE,TYPE,STATE", "device"],
+        interface = "wlan0"  # default wireless interface
+        
+        # Check if connected to an access point using iwgetid (works without sudo)
+        iwgetid_result = subprocess.run(
+            ["iwgetid", interface, "-r"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
         )
-        for line in dev_result.stdout.splitlines():
-            parts = line.split(":")
-            if len(parts) >= 3:
-                device, dev_type, state = parts[0], parts[1], parts[2]
-                if dev_type == "wifi" and state == "connected":
-                    # Check for a valid IP address on this device
-                    ip_result = subprocess.run(
-                        ["nmcli", "-t", "-f", "IP4.ADDRESS", "device", "show", device],
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        text=True
-                    )
-                    if ip_result.stdout.strip():
-                        return True
+        
+        # If iwgetid returns an SSID, we're connected to an AP
+        ssid = iwgetid_result.stdout.strip()
+        if not ssid:
+            return False
+        
+        # Verify we have an IP address on the wireless interface
+        ip_result = subprocess.run(
+            ["ip", "-4", "addr", "show", interface],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        # Check if there's an inet (IPv4) address assigned
+        for line in ip_result.stdout.splitlines():
+            if "inet " in line and "127.0.0.1" not in line:
+                return True
+        
         return False
     except Exception:
         return False
