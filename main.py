@@ -135,10 +135,11 @@ def main():
     else:
         log("Real-time updates disabled")
 
-    # Main loop - health check + sync poll
+    # Main loop - health check + sync poll + health report
     log("System ready. Monitoring connection health.")
     last_connection_check = time.monotonic()
     last_sync_poll = time.monotonic()
+    last_health_report = time.monotonic()
 
     try:
         while running:
@@ -159,10 +160,14 @@ def main():
                     except Exception as e:
                         log(f"Reconnect failed — will retry in 60s: {e}")
 
-            # Sync poll + health report every 5 minutes
+            # Sync poll every 5 minutes
             if now - last_sync_poll >= SYNC_POLL_INTERVAL:
                 last_sync_poll = now
                 sync_poll()
+
+            # Health report every 60s
+            if now - last_health_report >= CONNECTION_CHECK_INTERVAL:
+                last_health_report = now
                 connected = pusher_listener.connected if pusher_listener else False
                 report_health(connected)
 
