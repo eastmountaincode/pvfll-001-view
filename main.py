@@ -148,21 +148,22 @@ def main():
             # Connection health check every 60s
             if pusher_listener and now - last_connection_check >= CONNECTION_CHECK_INTERVAL:
                 last_connection_check = now
-                if not pusher_listener.is_connected():
+                if not pusher_listener.connected:
                     log("Connection lost — attempting reconnect...")
-                    if pusher_listener.reconnect():
-                        log("Reconnected successfully")
+                    try:
+                        pusher_listener.connect()
+                        log("Reconnect initiated")
                         # Re-sync after reconnect to catch missed events
                         sync_poll()
                         last_sync_poll = now
-                    else:
-                        log("Reconnect failed — will retry in 60s")
+                    except Exception as e:
+                        log(f"Reconnect failed — will retry in 60s: {e}")
 
             # Sync poll + health report every 5 minutes
             if now - last_sync_poll >= SYNC_POLL_INTERVAL:
                 last_sync_poll = now
                 sync_poll()
-                connected = pusher_listener.is_connected() if pusher_listener else False
+                connected = pusher_listener.connected if pusher_listener else False
                 report_health(connected)
 
     except KeyboardInterrupt:
