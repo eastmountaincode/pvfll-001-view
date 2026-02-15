@@ -1,59 +1,61 @@
 import time
-from display import init_display, display_centered_message
+from display import init_display, display_centered_message, display_portal_message, load_file_icon
 from util import is_wifi_connected
 from api import fetch_all_boxes
 from pusher_events import PusherListener
 
+WIFI_RETRY_INTERVAL = 10  # seconds between WiFi checks
+
 
 def boot_sequence() -> tuple:
     """
-    Run the boot sequence with these steps:
-      1. Initialize display
-      2. Check Wi-Fi connectivity
-      3. Connect to WebSocket (Pusher)
-      4. Fetch initial data
-    Displays status messages on the e-ink screen.
-
-    Returns:
-        (dict, PusherListener): initial box data and Pusher listener object.
+    Boot sequence:
+      1. Initialize display + load file icon
+      2. Check Wi-Fi connectivity (wait with portal message if not connected)
+      3. Connect to Pusher WebSocket
+      4. Fetch initial box data
+    Returns (box_data, pusher_listener) or (None, None) on failure.
     """
 
     # Step 1: Initialize display
     try:
         init_display()
-        display_centered_message("Booting system...", font_size=32, full_refresh=True)  # First message clears screen
+        load_file_icon()
+        display_centered_message("Booting...", font_size=32)
         time.sleep(1)
     except Exception as e:
         print(f"Error initializing display: {e}")
-        return {}, None
+        return None, None
 
-    # Step 2: Check Wi-Fi
-    display_centered_message("Checking Wi-Fi...", font_size=28, full_refresh=False)  # Fast partial refresh
+    # Step 2: Check Wi-Fi — show portal instructions and retry until connected
+    display_centered_message("Checking Wi-Fi...", font_size=28)
     if not is_wifi_connected():
-        display_centered_message("No Wi-Fi: Please restart", font_size=28, full_refresh=False)
-        print("⚠ No Wi-Fi connection detected. Please restart system.")
-        return None, None  # Signal boot failure
+        print("No Wi-Fi — showing captive portal instructions")
+        display_portal_message()
+        while not is_wifi_connected():
+            time.sleep(WIFI_RETRY_INTERVAL)
+        print("Wi-Fi connected!")
+        display_centered_message("Wi-Fi connected!", font_size=28)
+        time.sleep(1)
 
-    # Step 3: Connect to WebSocket
-    display_centered_message("Connecting to WebSocket...", font_size=28, full_refresh=False)  # Fast partial refresh
-    pusher_listener = PusherListener(on_box_update_callback=None)  # Main will set the callback later
+    # Step 3: Connect to Pusher
+    display_centered_message("Connecting to WebSocket...", font_size=24)
+    pusher_listener = PusherListener()
     if pusher_listener.connect():
-        display_centered_message("WebSocket connected", font_size=28, full_refresh=False)
-        print("WebSocket connection established.")
+        print("WebSocket connected")
     else:
-        display_centered_message("WebSocket failed: Please restart", font_size=24, full_refresh=False)
-        print("⚠ Failed to connect to WebSocket. Please restart system.")
-        return None, None  # Signal boot failure
+        display_centered_message("WebSocket failed", font_size=28)
+        print("Failed to connect to WebSocket")
+        return None, None
 
     # Step 4: Fetch initial data
-    display_centered_message("Fetching data...", font_size=28, full_refresh=False)  # Fast partial refresh
+    display_centered_message("Fetching data...", font_size=28)
     try:
         box_data = fetch_all_boxes()
-        display_centered_message("Boot complete!", font_size=28, full_refresh=False)
-        print("Initial data fetched successfully.")
+        display_centered_message("Boot complete!", font_size=28)
         time.sleep(1)
         return box_data, pusher_listener
     except Exception as e:
-        display_centered_message("Data fetch failed: Please restart", font_size=24, full_refresh=False)
-        print(f"Error during initial fetch: {e}. Please restart system.")
-        return None, None  # Signal boot failure
+        display_centered_message("Data fetch failed", font_size=28)
+        print(f"Error fetching data: {e}")
+        return None, None
