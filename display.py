@@ -158,6 +158,7 @@ def draw_box(draw: ImageDraw.ImageDraw, x: int, y: int, w: int, h: int,
     font_num = get_font(48, bold=True)
     font_info = get_font(18)
     font_label = get_font(18, bold=True)
+    font_source = get_font(14)  # Smaller font for source info
 
     # Border
     draw.rectangle((x, y, x + w, y + h), outline=0, width=2)
@@ -172,6 +173,32 @@ def draw_box(draw: ImageDraw.ImageDraw, x: int, y: int, w: int, h: int,
         icon_x = x + w - file_icon.width - icon_pad_x
         icon_y = y + icon_pad_y
         draw.bitmap((icon_x, icon_y), file_icon, fill=0)
+
+    # Source library info — two lines, left-aligned next to number
+    source = box_data.get("source")
+    if has_file and source:
+        source_name = source.get("name", "")
+        source_city = source.get("city", "")
+        
+        if source_name:
+            num_bbox_src = draw.textbbox((0, 0), str(box_num), font=font_num)
+            num_width = num_bbox_src[2] - num_bbox_src[0]
+            
+            # Left-aligned, right of number, nudged down slightly
+            source_x = x + pad_x + num_width + 10
+            source_y = y + pad_y + 8
+            line_spacing = 16
+            
+            # Measure "from " width for indent
+            from_width = draw.textbbox((0, 0), "from ", font=font_source)[2]
+            
+            # Line 1: "from" + library name
+            draw.text((source_x, source_y), "from", font=font_source, fill=0)
+            draw.text((source_x + from_width, source_y), source_name, font=font_source, fill=0)
+            
+            # Line 2: city (indented to align with name)
+            if source_city:
+                draw.text((source_x + from_width, source_y + line_spacing), source_city, font=font_source, fill=0)
 
     # Status text below the number
     num_bbox = draw.textbbox((0, 0), "1", font=font_num)
@@ -308,7 +335,8 @@ def display_boxes(box_data: Dict[int, Dict[str, Any]], force_full=False, qr_url:
         print(f"Error updating display: {e}")
 
 
-def display_centered_message(message: str, font_size: int = 28, bold: bool = True):
+def display_centered_message(message: str, font_size: int = 28, bold: bool = True,
+                             full_refresh: bool = False):
     """Show a single centered message (for boot status, errors, etc.)."""
     image = Image.new('1', (WIDTH, HEIGHT), 255)
     draw = ImageDraw.Draw(image)
@@ -325,8 +353,16 @@ def display_centered_message(message: str, font_size: int = 28, bold: bool = Tru
         return
 
     try:
-        epd.init()
-        epd.display(epd.getbuffer(image))
+        if full_refresh:
+            epd.init()
+            epd.display(epd.getbuffer(image))
+        else:
+            try:
+                epd.init_part()
+                epd.display_Partial(epd.getbuffer(image), 0, 0, epd.width, epd.height)
+            except AttributeError:
+                epd.init()
+                epd.display(epd.getbuffer(image))
     except Exception as e:
         print(f"Error displaying message: {e}")
 
@@ -380,8 +416,12 @@ def display_portal_message():
         return
 
     try:
-        epd.init()
-        epd.display(epd.getbuffer(image))
+        try:
+            epd.init_part()
+            epd.display_Partial(epd.getbuffer(image), 0, 0, epd.width, epd.height)
+        except AttributeError:
+            epd.init()
+            epd.display(epd.getbuffer(image))
     except Exception as e:
         print(f"Error displaying portal message: {e}")
 
@@ -390,8 +430,20 @@ def display_portal_message():
 if __name__ == "__main__":
     test_data = {
         1: {"empty": True},
-        2: {"empty": False, "name": "test_image.jpg", "type": "Image (JPEG)", "size": 1234567},
-        3: {"empty": False, "name": "very_long_filename_that_will_be_truncated.pdf", "type": "PDF", "size": 987654},
+        2: {
+            "empty": False,
+            "name": "test_image.jpg",
+            "type": "Image (JPEG)",
+            "size": 1234567,
+            "source": {"name": "Headrest Coffee", "city": "NYC"}
+        },
+        3: {
+            "empty": False,
+            "name": "very_long_filename_that_will_be_truncated.pdf",
+            "type": "PDF",
+            "size": 987654,
+            "source": {"name": "BK Heights LFL", "city": "Brooklyn"}
+        },
         4: {"empty": True, "error": "Connection timeout"}
     }
 

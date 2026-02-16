@@ -155,7 +155,7 @@ def main():
             # Connection health check every 60s
             if pusher_listener and now_mono - last_connection_check >= CONNECTION_CHECK_INTERVAL:
                 last_connection_check = now_mono
-                if not pusher_listener.connected:
+                if not pusher_listener.is_healthy():
                     log("Connection lost — reconnecting...")
                     try:
                         pusher_listener.connect()
