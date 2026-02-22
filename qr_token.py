@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 load_dotenv(".env.local")
 
 QR_SECRET = os.getenv("QR_SECRET", "")
-QR_INTERVAL_SECONDS = int(os.getenv("QR_INTERVAL_SECONDS", "30"))
+QR_INTERVAL_SECONDS = int(os.getenv("QR_INTERVAL_SECONDS", "1800"))
 DEVICE_ID = os.getenv("DEVICE_ID", "pvfll-001")
 BASE_URL = "https://htmlpg.andrew-boylan.com"
 
